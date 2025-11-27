@@ -557,7 +557,7 @@
             data.forEach(ninja => {
                 let firstName = ninja.championName.split(' ')[0].toLowerCase();
                 // IMAGE PATH : Update ici
-                let imagePath = `images/${firstName}.png`;
+                let imagePath = `${firstName}.png`;
 
                 const natureBadges = ninja.natureTypes.map(n => {
                     if (n === 'Aucun') return '';
@@ -595,4 +595,5 @@
 
     </script>
 </body>
+
 </html>
