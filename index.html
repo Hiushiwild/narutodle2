@@ -523,7 +523,7 @@
 
             data.forEach(ninja => {
                 let firstName = ninja.name.split(' ')[0].toLowerCase();
-                let imagePath = `images/${firstName}.png`;
+                let imagePath = `${firstName}.png`;
 
                 const makeBadges = (arr, cls) => {
                     if (!arr || (arr.length===1 && arr[0]==='None')) return '';
@@ -565,3 +565,4 @@
     </script>
 </body>
 </html>
+
