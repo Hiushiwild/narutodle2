@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NarutoDex - Recherche de Ninja</title>
+    <title>Narutodle Helper</title>
     <style>
         :root {
             --primary: #ff9900;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
             --dark: #1a1a1a;
             --card-bg: #2d2d2d;
             --text: #f0f0f0;
-            --sidebar-width: 340px;
+            --sidebar-width: 400px;
         }
         
         * { box-sizing: border-box; }
@@ -41,9 +44,7 @@
             box-shadow: 4px 0 15px rgba(0,0,0,0.5);
         }
         
-        body.menu-open .sidebar {
-            left: 0;
-        }
+        body.menu-open .sidebar { left: 0; }
 
         .sidebar-content {
             flex-grow: 1;
@@ -61,486 +62,452 @@
             z-index: 10;
         }
 
-        /* --- CONTENU PRINCIPAL --- */
+        /* --- CONTENU PRINCIPAL (CORRIGÉ) --- */
         .main-content {
             flex-grow: 1;
             padding: 20px;
             padding-top: 80px;
-            transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Transition fluide sur la largeur et la marge */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             margin-left: 0;
             width: 100%;
+            position: relative;
         }
 
+        /* Sur PC, on réduit la largeur pour ne pas déborder */
         @media (min-width: 1024px) {
-            body.menu-open .main-content {
+            body.menu-open .main-content { 
                 margin-left: var(--sidebar-width);
+                width: calc(100% - var(--sidebar-width)); /* LE FIX EST ICI */
             }
         }
 
-        /* --- BOUTON TOGGLE --- */
+        /* --- BOUTONS --- */
         .toggle-btn {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 20px; left: 20px;
             background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            z-index: 900;
-            font-size: 1.1em;
-            font-weight: bold;
+            color: white; border: none;
+            padding: 12px 20px; border-radius: 8px;
+            cursor: pointer; z-index: 900;
+            font-size: 1.1em; font-weight: bold;
             box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-            transition: opacity 0.2s, transform 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            transition: opacity 0.2s;
         }
-        .toggle-btn:hover { background-color: #e68a00; transform: translateY(-2px); }
-
-        body.menu-open .toggle-btn {
-            opacity: 0;
-            pointer-events: none;
-        }
+        .toggle-btn:hover { background-color: #e68a00; }
+        body.menu-open .toggle-btn { opacity: 0; pointer-events: none; }
 
         .close-sidebar {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            color: #888;
-            font-size: 2em;
-            cursor: pointer;
-            line-height: 1;
-            transition: color 0.2s;
+            position: absolute; top: 10px; right: 15px;
+            background: none; border: none;
+            color: #888; font-size: 2em; cursor: pointer;
         }
         .close-sidebar:hover { color: white; }
 
-        h1 { color: var(--primary); margin-top: 0; }
-        
+        /* --- FILTRES --- */
+        .filter-section { margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px; }
         .filter-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--primary);
-            margin-top: 25px;
-            margin-bottom: 12px;
-            padding-bottom: 5px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 10px;
         }
-
         .filter-header h3 { 
-            margin: 0;
-            font-size: 1em;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: #ccc;
+            color: var(--primary); margin: 0; font-size: 1.1em; text-transform: uppercase; 
+        }
+        
+        .tri-state-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 5px;
         }
 
-        .mini-reset {
-            background: none;
-            border: none;
-            color: #555;
-            cursor: pointer;
-            font-size: 1.2em;
-            padding: 0 5px;
-            transition: color 0.2s;
-        }
-        .mini-reset:hover { color: var(--primary); }
-
-        .filter-group { margin-bottom: 15px; }
-        label { 
-            display: flex; 
+        .tri-state-item {
+            display: flex;
             align-items: center;
-            margin-bottom: 8px; 
-            cursor: pointer; 
-            font-size: 0.95em;
-            color: #ddd;
-            transition: color 0.2s;
+            justify-content: space-between;
+            background: #333;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
         }
-        label:hover { color: white; }
-        input[type="checkbox"] { 
-            margin-right: 12px; 
-            width: 18px; 
-            height: 18px; 
-            accent-color: var(--primary); 
-            cursor: pointer;
+
+        .state-controls { display: flex; gap: 5px; }
+
+        .state-btn {
+            width: 24px; height: 24px;
+            border-radius: 4px; border: 1px solid #555;
+            background: #222; cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; color: #888; font-weight: bold;
         }
+        .state-btn:hover { border-color: #888; }
+        .state-btn.active-green { background-color: var(--success); border-color: var(--success); color: white; }
+        .state-btn.active-red { background-color: var(--danger); border-color: var(--danger); color: white; }
+        .state-btn.active-yellow { background-color: var(--warning); border-color: var(--warning); color: black; }
 
         .reset-btn {
-            width: 100%; 
-            background: var(--primary); 
-            color: white; 
-            border: none; 
-            padding: 15px;
-            border-radius: 8px; 
-            cursor: pointer; 
-            font-weight: bold; 
-            font-size: 1em;
-            text-transform: uppercase;
-            transition: background 0.2s, transform 0.1s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            width: 100%; background: var(--primary); color: white; 
+            border: none; padding: 15px; border-radius: 8px; 
+            cursor: pointer; font-weight: bold; text-transform: uppercase;
         }
-        .reset-btn:hover { background: #cc7a00; transform: translateY(-1px); }
-        .reset-btn:active { transform: translateY(1px); }
+        .reset-btn:hover { background: #cc7a00; }
+        
+        .mini-reset { background:none; border:none; color:#666; cursor:pointer; font-size:1.2em; }
+        .mini-reset:hover { color:white; }
 
-        /* --- GRILLE ET CARTES --- */
+        /* --- GRILLE --- */
         .grid-container {
-            max-width: 1400px;
-            margin: 0 auto;
+            max-width: 1400px; margin: 0 auto; /* Centre la grille */
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 30px;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 25px;
         }
 
         .card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #333;
-            position: relative;
+            background-color: var(--card-bg); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: transform 0.2s;
+            display: flex; flex-direction: column; border: 1px solid #333;
         }
-        .card:hover { 
-            transform: translateY(-8px); 
-            box-shadow: 0 15px 30px rgba(0,0,0,0.4); 
-            border-color: var(--primary); 
-        }
+        .card:hover { transform: translateY(-5px); border-color: var(--primary); }
 
         .img-container {
-            width: 100%;
-            height: 280px;
-            background-color: #3a3a3a;
-            border-bottom: 4px solid var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            position: relative;
+            width: 100%; height: 220px; background-color: #3a3a3a;
+            border-bottom: 3px solid var(--primary); position: relative;
+            display: flex; align-items: center; justify-content: center;
         }
-        
-        .card-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s ease;
-        }
-        .card:hover .card-img { transform: scale(1.05); }
-
-        .img-fallback-text {
-            display: none;
-            color: #666;
-            font-weight: bold;
-            font-size: 1.2em;
-            text-align: center;
-            padding: 10px;
-        }
-
+        .card-img { width: 100%; height: 100%; object-fit: cover; }
+        .img-fallback-text { display: none; color: #666; font-weight: bold; font-size: 1.2em; text-align: center; }
         .img-error .card-img { display: none; }
         .img-error .img-fallback-text { display: block; }
 
-        .card-content { padding: 20px; }
-        .card h2 { margin-top: 0; font-size: 1.4em; color: var(--primary); margin-bottom: 12px; }
-        .card p { margin: 6px 0; font-size: 0.95em; color: #ccc; line-height: 1.4; }
+        .card-content { padding: 15px; }
+        .card h2 { margin-top: 0; font-size: 1.2em; color: var(--primary); margin-bottom: 8px; }
+        .card p { margin: 3px 0; font-size: 0.85em; color: #ccc; }
 
-        .badges-container {
-            margin-top: 10px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-        }
-
+        .badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
         .badge {
-            display: inline-block;
+            padding: 2px 6px; border-radius: 4px; font-size: 0.7em; color: white; font-weight: bold;
             background: #444;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.75em;
-            color: white;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-        .tag-feu { background: linear-gradient(135deg, #ff4d4d, #b30000); }
-        .tag-eau { background: linear-gradient(135deg, #4da6ff, #004d99); }
-        .tag-terre { background: linear-gradient(135deg, #bf8040, #664400); }
-        .tag-foudre { background: linear-gradient(135deg, #ffff4d, #e6e600); color: black;}
-        .tag-vent { background: linear-gradient(135deg, #80ffaa, #006633); color: black;}
-        
-        .spec-badge {
-            background: #333;
-            border: 1px solid #555;
-            color: #aaa;
-        }
+        .tag-nature { background: #008080; }
+        .tag-kg { background: #800080; }
+        .tag-jutsu { background: #0056b3; }
+        .tag-attr { background: #A52A2A; }
 
     </style>
 </head>
 <body>
 
-    <button class="toggle-btn" onclick="toggleSidebar()">
-        <span>☰</span> Filtres
-    </button>
+    <button class="toggle-btn" onclick="toggleSidebar()">☰ Filtres</button>
 
     <div class="sidebar" id="sidebar">
         <button class="close-sidebar" onclick="toggleSidebar()">×</button>
         
         <div class="sidebar-content">
-            <h2 style="margin-top:0; color:white;">🔍 Recherche</h2>
-            
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Nature de Chakra</h3>
-                    <button class="mini-reset" onclick="resetGroup('nature')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="nature-filters"></div>
-            </div>
-
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Sexe</h3>
-                    <button class="mini-reset" onclick="resetGroup('gender')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="gender-filters"></div>
-            </div>
-
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Village / Affiliation</h3>
-                    <button class="mini-reset" onclick="resetGroup('affiliation')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="affiliation-filters"></div>
-            </div>
-
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Rang</h3>
-                    <button class="mini-reset" onclick="resetGroup('rank')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="rank-filters"></div>
-            </div>
-
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Statut</h3>
-                    <button class="mini-reset" onclick="resetGroup('status')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="status-filters"></div>
-            </div>
-
-            <div class="filter-group">
-                <div class="filter-header">
-                    <h3>Classification</h3>
-                    <button class="mini-reset" onclick="resetGroup('classif')" title="Réinitialiser">↺</button>
-                </div>
-                <div id="classif-filters"></div>
-            </div>
+            <h2 style="margin-top:0; color:white;">Recherche</h2>
+            <p style="font-size:0.8em; color:#888; margin-bottom:20px;">
+                🟢 = Possède UNIQUEMENT ça<br>
+                🟡 = Possède AU MOINS ça<br>
+                🔴 = Ne possède PAS ça
+            </p>
+            <div id="filters-container"></div>
         </div>
 
         <div class="sidebar-footer">
-            <button onclick="resetFilters()" class="reset-btn">TOUT Réinitialiser</button>
+            <button onclick="resetAllFilters()" class="reset-btn">Tout Réinitialiser</button>
         </div>
     </div>
 
     <div class="main-content">
         <div class="grid-container">
-            <div style="text-align: center; margin-bottom: 40px;">
-                <h1 style="font-size: 3.5em; margin-bottom: 10px; text-shadow: 0 4px 10px rgba(0,0,0,0.5);">🍥 Narutodex</h1>
-                <p style="color: #999; font-size: 1.1em;">Explorez la base de données ultime des Shinobis</p>
-                <p style="margin-top: 15px;"><strong><span id="count" style="color: var(--primary); font-size: 1.8em;">...</span></strong> ninjas trouvés</p>
+            <div style="text-align: center; margin-bottom: 30px;">
+                <h1 style="font-size: 3em; margin-bottom: 0;">🍥 Narutodle Helper</h1>
+                <p><strong><span id="count" style="color: var(--primary); font-size: 1.5em;">...</span></strong> ninjas trouvés</p>
             </div>
-            
             <div class="grid" id="ninja-grid"></div>
         </div>
     </div>
 
     <script>
-        // --- DONNÉES ---
-        const ninjas = [
-            {"championName": "Minato Namikaze", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Kage", "natureTypes": ["Feu", "Vent", "Foudre"], "status": "Mort", "classifications": ["Jinchūriki", "Ermite"]},
-            {"championName": "Itachi Uchiha", "gender": "Homme", "affiliations": ["Konoha", "Akatsuki"], "ninjaRank": "Anbu", "natureTypes": ["Feu", "Vent", "Eau"], "status": "Mort", "classifications": ["Déserteur"]},
-            {"championName": "Naruto Uzumaki", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Genin", "natureTypes": ["Vent", "Foudre", "Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Jinchūriki", "Ermite"]},
-            {"championName": "Kakashi Hatake", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Foudre", "Terre", "Eau", "Feu", "Vent"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Sakura Haruno", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Ninja Médecin"]},
-            {"championName": "Shisui Uchiha", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Anbu", "natureTypes": ["Feu", "Vent", "Foudre"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Sakumo Hatake", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Madara Uchiha", "gender": "Homme", "affiliations": ["Konoha", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Mort", "classifications": ["Jinchūriki", "Déserteur", "Ermite"]},
-            {"championName": "Obito Uchiha", "gender": "Homme", "affiliations": ["Konoha", "Akatsuki", "Kiri"], "ninjaRank": "Chūnin", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Mort", "classifications": ["Jinchūriki", "Déserteur"]},
-            {"championName": "Hinata Hyuga", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Feu", "Foudre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Jiraiya", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Feu", "Vent", "Terre", "Eau"], "status": "Mort", "classifications": ["Ermite"]},
-            {"championName": "Sasuke Uchiha", "gender": "Homme", "affiliations": ["Konoha", "Oto", "Akatsuki"], "ninjaRank": "Genin", "natureTypes": ["Foudre", "Feu", "Vent", "Terre", "Eau"], "status": "Vivant", "classifications": ["Déserteur"]},
-            {"championName": "Shikamaru Nara", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Feu", "Terre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Neji Hyuga", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Feu", "Terre", "Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Tobirama Senju", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Kage", "natureTypes": ["Eau", "Feu", "Vent", "Foudre", "Terre"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Hashirama Senju", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Kage", "natureTypes": ["Terre", "Eau", "Feu", "Vent", "Foudre"], "status": "Mort", "classifications": ["Ermite"]},
-            {"championName": "Deidara", "gender": "Homme", "affiliations": ["Iwa", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Terre", "Foudre"], "status": "Mort", "classifications": ["Déserteur", "Ninja Mercenaire"]},
-            {"championName": "Gaara", "gender": "Homme", "affiliations": ["Suna"], "ninjaRank": "Kage", "natureTypes": ["Vent", "Terre", "Foudre"], "status": "Vivant", "classifications": ["Jinchūriki"]},
-            {"championName": "Sasori", "gender": "Homme", "affiliations": ["Suna", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Déserteur"]},
-            {"championName": "Guy Might", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Feu", "Foudre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Hidan", "gender": "Homme", "affiliations": ["Yu", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Déserteur"]},
-            {"championName": "Rock Lee", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Kushina Uzumaki", "gender": "Femme", "affiliations": ["Uzushio", "Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Eau"], "status": "Mort", "classifications": ["Jinchūriki"]},
-            {"championName": "Orochimaru", "gender": "Homme", "affiliations": ["Konoha", "Akatsuki", "Oto"], "ninjaRank": "Anbu", "natureTypes": ["Vent", "Foudre", "Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Déserteur"]},
-            {"championName": "Kurama", "gender": "Autre", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent"], "status": "Vivant", "classifications": ["Démon à Queues", "Ermite"]},
-            {"championName": "Zabuza Momochi", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Anbu", "natureTypes": ["Eau"], "status": "Mort", "classifications": ["Déserteur", "Ninja Mercenaire"]},
-            {"championName": "Nagato", "gender": "Homme", "affiliations": ["Ame", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Kaguya Otsutsuki", "gender": "Femme", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Iruka Umino", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Feu", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Fugaku Uchiha", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Feu"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Tsunade", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Kage", "natureTypes": ["Foudre", "Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Ninja Médecin"]},
-            {"championName": "Haku", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Eau"], "status": "Mort", "classifications": ["Ninja Mercenaire"]},
-            {"championName": "Tenten", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Mito Uzumaki", "gender": "Femme", "affiliations": ["Uzushio", "Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Jinchūriki"]},
-            {"championName": "Yamato", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Anbu", "natureTypes": ["Terre", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Kisame Hoshigaki", "gender": "Homme", "affiliations": ["Kiri", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Eau", "Feu", "Vent", "Terre"], "status": "Mort", "classifications": ["Déserteur"]},
-            {"championName": "Teuchi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Konan", "gender": "Femme", "affiliations": ["Ame", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Terre", "Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Temari", "gender": "Femme", "affiliations": ["Suna"], "ninjaRank": "Jōnin", "natureTypes": ["Vent"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Sai", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Anbu", "natureTypes": ["Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Killer B", "gender": "Homme", "affiliations": ["Kumo"], "ninjaRank": "Aucun", "natureTypes": ["Foudre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Jinchūriki"]},
-            {"championName": "Indra Otsutsuki", "gender": "Homme", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Foudre"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Hiruzen Sarutobi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Kage", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Izuna Uchiha", "gender": "Homme", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Feu"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Rin Nohara", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Feu", "Eau"], "status": "Mort", "classifications": ["Ninja Médecin", "Jinchūriki"]},
-            {"championName": "Kiba Inuzuka", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Terre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Kimimaro", "gender": "Homme", "affiliations": ["Oto"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Kakuzu", "gender": "Homme", "affiliations": ["Taki", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Terre", "Eau", "Feu", "Vent", "Foudre"], "status": "Mort", "classifications": ["Déserteur"]},
-            {"championName": "Duy Might", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Genin", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Ino Yamanaka", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Terre", "Eau", "Feu"], "status": "Vivant", "classifications": ["Ninja Médecin"]},
-            {"championName": "Kankuro", "gender": "Homme", "affiliations": ["Suna"], "ninjaRank": "Jōnin", "natureTypes": ["Vent", "Foudre", "Terre", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Kabuto Yakushi", "gender": "Homme", "affiliations": ["Konoha", "Oto", "Akatsuki"], "ninjaRank": "Genin", "natureTypes": ["Terre", "Eau", "Vent"], "status": "Vivant", "classifications": ["Ninja Médecin", "Déserteur", "Ermite"]},
-            {"championName": "Mei Terumi", "gender": "Femme", "affiliations": ["Kiri"], "ninjaRank": "Kage", "natureTypes": ["Eau", "Feu", "Foudre", "Terre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Shino Aburame", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Terre", "Feu"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Suigetsu Hozuki", "gender": "Homme", "affiliations": ["Kiri", "Oto", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Eau", "Vent"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Genma Shiranui", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Hagoromo Otsutsuki", "gender": "Homme", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Mort", "classifications": ["Jinchūriki", "Ermite"]},
-            {"championName": "Asuma Sarutobi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Vent", "Feu"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Tayuya", "gender": "Femme", "affiliations": ["Oto"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Konohamaru Sarutobi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Genin", "natureTypes": ["Feu", "Vent", "Foudre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Akamaru", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Karin", "gender": "Femme", "affiliations": ["Kusa", "Oto", "Akatsuki"], "ninjaRank": "Genin", "natureTypes": ["Terre", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Danzo Shimura", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Terre", "Eau", "Feu"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Hayate Gekko", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Asura Otsutsuki", "gender": "Homme", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Foudre", "Terre", "Eau", "Feu"], "status": "Mort", "classifications": ["Ermite"]},
-            {"championName": "Utakata", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Aucun", "natureTypes": ["Eau"], "status": "Mort", "classifications": ["Jinchūriki", "Déserteur"]},
-            {"championName": "Yagura Karatachi", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Kage", "natureTypes": ["Eau", "Vent"], "status": "Mort", "classifications": ["Jinchūriki"]},
-            {"championName": "Samui", "gender": "Femme", "affiliations": ["Kumo"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Black Zetsu", "gender": "Autre", "affiliations": ["Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Terre", "Eau", "Feu", "Vent", "Foudre"], "status": "Vivant", "classifications": ["Jinchūriki"]},
-            {"championName": "Darui", "gender": "Homme", "affiliations": ["Kumo"], "ninjaRank": "Jōnin", "natureTypes": ["Foudre", "Eau", "Vent"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Yahiko", "gender": "Homme", "affiliations": ["Ame", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Eau", "Feu", "Vent"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Shikaku Nara", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Gamabunta", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Eau"], "status": "Vivant", "classifications": ["Invocation"]},
-            {"championName": "Ten-Tails", "gender": "Autre", "affiliations": ["Aucun"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent", "Foudre", "Terre", "Eau"], "status": "Vivant", "classifications": ["Démon à Queues"]},
-            {"championName": "Chiyo", "gender": "Femme", "affiliations": ["Suna"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Ninja Médecin"]},
-            {"championName": "Mikoto Uchiha", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Shizune", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Ninja Médecin"]},
-            {"championName": "Choji Akimichi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Chūnin", "natureTypes": ["Terre", "Feu"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Hanzo", "gender": "Homme", "affiliations": ["Ame"], "ninjaRank": "Aucun", "natureTypes": ["Feu"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Pakkun", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Invocation"]},
-            {"championName": "Omoi", "gender": "Homme", "affiliations": ["Kumo"], "ninjaRank": "Chūnin", "natureTypes": ["Foudre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Gamatatsu", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Eau"], "status": "Vivant", "classifications": ["Invocation"]},
-            {"championName": "Chojuro", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Jōnin", "natureTypes": ["Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Gengetsu Hozuki", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Kage", "natureTypes": ["Eau", "Feu", "Foudre", "Terre"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Yugito Nii", "gender": "Femme", "affiliations": ["Kumo"], "ninjaRank": "Jōnin", "natureTypes": ["Feu"], "status": "Mort", "classifications": ["Jinchūriki"]},
-            {"championName": "Mu", "gender": "Homme", "affiliations": ["Iwa"], "ninjaRank": "Kage", "natureTypes": ["Terre", "Eau", "Feu", "Vent", "Foudre"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Karui", "gender": "Femme", "affiliations": ["Kumo"], "ninjaRank": "Chūnin", "natureTypes": ["Foudre"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Baki", "gender": "Homme", "affiliations": ["Suna"], "ninjaRank": "Jōnin", "natureTypes": ["Vent"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Homura Mitokado", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Ebisu", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Feu"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Shima", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Feu", "Vent"], "status": "Vivant", "classifications": ["Ermite", "Invocation"]},
-            {"championName": "Hiashi Hyuga", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Katsuyu", "gender": "Autre", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Invocation"]},
-            {"championName": "Gamakichi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Eau", "Feu"], "status": "Vivant", "classifications": ["Ermite", "Invocation"]},
-            {"championName": "Gyuki", "gender": "Autre", "affiliations": ["Kumo"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Démon à Queues"]},
-            {"championName": "Choza Akimichi", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Fukasaku", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Eau"], "status": "Vivant", "classifications": ["Ermite", "Invocation"]},
-            {"championName": "Ao", "gender": "Homme", "affiliations": ["Kiri"], "ninjaRank": "Jōnin", "natureTypes": ["Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Koharu Utatane", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Mifune", "gender": "Homme", "affiliations": ["Pays du Fer"], "ninjaRank": "Aucun", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Kurenai Yuhi", "gender": "Femme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Aucun"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Inoichi Yamanaka", "gender": "Homme", "affiliations": ["Konoha"], "ninjaRank": "Jōnin", "natureTypes": ["Eau"], "status": "Mort", "classifications": ["Aucun"]},
-            {"championName": "Jugo", "gender": "Homme", "affiliations": ["Oto", "Akatsuki"], "ninjaRank": "Aucun", "natureTypes": ["Vent", "Terre", "Eau"], "status": "Vivant", "classifications": ["Ermite"]},
-            {"championName": "A (Fourth Raikage)", "gender": "Homme", "affiliations": ["Kumo"], "ninjaRank": "Kage", "natureTypes": ["Foudre", "Terre", "Eau"], "status": "Vivant", "classifications": ["Aucun"]},
-            {"championName": "Onoki", "gender": "Homme", "affiliations": ["Iwa"], "ninjaRank": "Kage", "natureTypes": ["Terre", "Feu", "Vent", "Foudre"], "status": "Vivant", "classifications": ["Aucun"]}
+        const rawNinjas = [
+            {name:"Minato Namikaze",gender:"Male",affs:["Konoha"],rank:"Kage",nature:["Fire","Wind","Lightning"],kg:["None"],jutsu:["Ninjutsu"],attr:["Jinchūriki","Sage"]},
+            {name:"Itachi Uchiha",gender:"Male",affs:["Konoha","Akatsuki"],rank:"Anbu",nature:["Fire","Wind","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Missing-nin"]},
+            {name:"Naruto Uzumaki",gender:"Male",affs:["Konoha"],rank:"Genin",nature:["Wind","Lightning","Earth","Water","Fire"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["Jinchūriki","Sage"]},
+            {name:"Kakashi Hatake",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Lightning","Earth","Water","Fire","Wind"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Sakura Haruno",gender:"Female",affs:["Konoha"],rank:"Chūnin",nature:["Earth","Water","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Medical-nin"]},
+            {name:"Shisui Uchiha",gender:"Male",affs:["Konoha"],rank:"Anbu",nature:["Fire","Wind","Lightning"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Sakumo Hatake",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Madara Uchiha",gender:"Male",affs:["Konoha","Akatsuki"],rank:"None",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Dôjutsu","Nature Transformation"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Jinchūriki","Missing-nin","Sage"]},
+            {name:"Obito Uchiha",gender:"Male",affs:["Konoha","Akatsuki","Kiri"],rank:"Chūnin",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Dôjutsu","Nature Transformation"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Jinchūriki","Missing-nin"]},
+            {name:"Hinata Hyuga",gender:"Female",affs:["Konoha"],rank:"Chūnin",nature:["Fire","Lightning"],kg:["Dôjutsu"],jutsu:["Taijutsu","Ninjutsu"],attr:["None"]},
+            {name:"Jiraiya",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Fire","Wind","Earth","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["Sage"]},
+            {name:"Sasuke Uchiha",gender:"Male",affs:["Konoha","Oto","Akatsuki"],rank:"Genin",nature:["Lightning","Fire","Wind","Earth","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Missing-nin"]},
+            {name:"Shikamaru Nara",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["Fire","Earth"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Neji Hyuga",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Fire","Earth","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Tobirama Senju",gender:"Male",affs:["Konoha"],rank:"Kage",nature:["Water","Fire","Wind","Lightning","Earth"],kg:["None"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Hashirama Senju",gender:"Male",affs:["Konoha"],rank:"Kage",nature:["Earth","Water","Fire","Wind","Lightning"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Sage"]},
+            {name:"Deidara",gender:"Male",affs:["Iwa","Akatsuki"],rank:"None",nature:["Earth","Lightning"],kg:["Nature Transformation"],jutsu:["Ninjutsu"],attr:["Missing-nin","Mercenary Ninja"]},
+            {name:"Gaara",gender:"Male",affs:["Suna"],rank:"Kage",nature:["Wind","Earth","Lightning"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["Jinchūriki"]},
+            {name:"Sasori",gender:"Male",affs:["Suna","Akatsuki"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["Missing-nin"]},
+            {name:"Guy Might",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Fire","Lightning"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Hidan",gender:"Male",affs:["Yu","Akatsuki"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["Missing-nin"]},
+            {name:"Rock Lee",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["None"],kg:["None"],jutsu:["Taijutsu"],attr:["None"]},
+            {name:"Kushina Uzumaki",gender:"Female",affs:["Uzushio","Konoha"],rank:"None",nature:["Wind","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["Jinchūriki"]},
+            {name:"Orochimaru",gender:"Male",affs:["Konoha","Akatsuki","Oto"],rank:"Anbu",nature:["Wind","Lightning","Earth","Water","Fire"],kg:["Body Enhancement","Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["Missing-nin"]},
+            {name:"Kurama",gender:"Other",affs:["Konoha"],rank:"None",nature:["Fire","Wind"],kg:["None"],jutsu:["Ninjutsu"],attr:["Tailed Beast","Sage"]},
+            {name:"Zabuza Momochi",gender:"Male",affs:["Kiri"],rank:"Anbu",nature:["Water"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Missing-nin","Mercenary Ninja"]},
+            {name:"Nagato",gender:"Male",affs:["Ame","Akatsuki"],rank:"None",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Kaguya Otsutsuki",gender:"Female",affs:["None"],rank:"None",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Iruka Umino",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["Fire","Water"],kg:["None"],jutsu:["Ninjutsu","Genjutsu"],attr:["None"]},
+            {name:"Fugaku Uchiha",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Fire"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu"],attr:["None"]},
+            {name:"Tsunade",gender:"Female",affs:["Konoha"],rank:"Kage",nature:["Lightning","Earth","Water","Fire"],kg:["None"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["Medical-nin"]},
+            {name:"Haku",gender:"Male",affs:["Kiri"],rank:"None",nature:["Wind","Water"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["Mercenary Ninja"]},
+            {name:"Tenten",gender:"Female",affs:["Konoha"],rank:"Chūnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Mito Uzumaki",gender:"Female",affs:["Uzushio","Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["Jinchūriki"]},
+            {name:"Yamato",gender:"Male",affs:["Konoha"],rank:"Anbu",nature:["Earth","Water"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Kisame Hoshigaki",gender:"Male",affs:["Kiri","Akatsuki"],rank:"None",nature:["Water","Fire","Wind","Earth"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Missing-nin"]},
+            {name:"Teuchi",gender:"Male",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Konan",gender:"Female",affs:["Ame","Akatsuki"],rank:"None",nature:["Wind","Earth","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Temari",gender:"Female",affs:["Suna"],rank:"Jōnin",nature:["Wind"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Sai",gender:"Male",affs:["Konoha"],rank:"Anbu",nature:["Earth","Water","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Killer B",gender:"Male",affs:["Kumo"],rank:"None",nature:["Lightning","Water","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Jinchūriki"]},
+            {name:"Indra Otsutsuki",gender:"Male",affs:["None"],rank:"None",nature:["Fire","Lightning"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Hiruzen Sarutobi",gender:"Male",affs:["Konoha"],rank:"Kage",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Izuna Uchiha",gender:"Male",affs:["None"],rank:"None",nature:["Fire"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu"],attr:["None"]},
+            {name:"Rin Nohara",gender:"Female",affs:["Konoha"],rank:"Chūnin",nature:["Fire","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["Medical-nin","Jinchūriki"]},
+            {name:"Kiba Inuzuka",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["Earth"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Kimimaro",gender:"Male",affs:["Oto"],rank:"None",nature:["None"],kg:["Body Enhancement"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Kakuzu",gender:"Male",affs:["Taki","Akatsuki"],rank:"None",nature:["Earth","Water","Fire","Wind","Lightning"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Missing-nin"]},
+            {name:"Duy Might",gender:"Male",affs:["Konoha"],rank:"Genin",nature:["None"],kg:["None"],jutsu:["Taijutsu"],attr:["None"]},
+            {name:"Ino Yamanaka",gender:"Female",affs:["Konoha"],rank:"Chūnin",nature:["Earth","Water","Fire"],kg:["None"],jutsu:["Ninjutsu"],attr:["Medical-nin"]},
+            {name:"Kankuro",gender:"Male",affs:["Suna"],rank:"Jōnin",nature:["Wind","Lightning","Earth","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Kabuto Yakushi",gender:"Male",affs:["Konoha","Oto","Akatsuki"],rank:"Genin",nature:["Earth","Water","Wind"],kg:["Body Enhancement"],jutsu:["Ninjutsu","Genjutsu"],attr:["Medical-nin","Missing-nin","Sage"]},
+            {name:"Mei Terumi",gender:"Female",affs:["Kiri"],rank:"Kage",nature:["Water","Fire","Lightning","Earth"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Shino Aburame",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["Earth","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Suigetsu Hozuki",gender:"Male",affs:["Kiri","Oto","Akatsuki"],rank:"None",nature:["Water","Wind"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Genma Shiranui",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Hagoromo Otsutsuki",gender:"Male",affs:["None"],rank:"None",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu"],attr:["Jinchūriki","Sage"]},
+            {name:"Asuma Sarutobi",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Wind","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Tayuya",gender:"Female",affs:["Oto"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Konohamaru Sarutobi",gender:"Male",affs:["Konoha"],rank:"Genin",nature:["Fire","Wind","Lightning"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Akamaru",gender:"Male",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Karin",gender:"Female",affs:["Kusa","Oto","Akatsuki"],rank:"Genin",nature:["Earth","Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Danzo Shimura",gender:"Male",affs:["Konoha"],rank:"None",nature:["Wind","Earth","Water","Fire"],kg:["Dôjutsu","Nature Transformation"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Hayate Gekko",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Asura Otsutsuki",gender:"Male",affs:["None"],rank:"None",nature:["Wind","Lightning","Earth","Water","Fire"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["Sage"]},
+            {name:"Utakata",gender:"Male",affs:["Kiri"],rank:"None",nature:["Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["Jinchūriki","Missing-nin"]},
+            {name:"Yagura Karatachi",gender:"Male",affs:["Kiri"],rank:"Kage",nature:["Water","Wind"],kg:["None"],jutsu:["Ninjutsu"],attr:["Jinchūriki"]},
+            {name:"Samui",gender:"Female",affs:["Kumo"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Black Zetsu",gender:"Other",affs:["Akatsuki"],rank:"None",nature:["Earth","Water","Fire","Wind","Lightning"],kg:["Nature Transformation","Dôjutsu"],jutsu:["Ninjutsu"],attr:["Jinchūriki"]},
+            {name:"Darui",gender:"Male",affs:["Kumo"],rank:"Jōnin",nature:["Lightning","Water","Wind"],kg:["Nature Transformation"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Yahiko",gender:"Male",affs:["Ame","Akatsuki"],rank:"None",nature:["Water","Fire","Wind"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Shikaku Nara",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Gamabunta",gender:"Male",affs:["Konoha"],rank:"None",nature:["Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["Summon"]},
+            {name:"Ten-Tails",gender:"Other",affs:["None"],rank:"None",nature:["Fire","Wind","Lightning","Earth","Water"],kg:["Nature Transformation"],jutsu:["Ninjutsu"],attr:["Tailed Beast"]},
+            {name:"Chiyo",gender:"Female",affs:["Suna"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Medical-nin"]},
+            {name:"Mikoto Uchiha",gender:"Female",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Shizune",gender:"Female",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["Medical-nin"]},
+            {name:"Choji Akimichi",gender:"Male",affs:["Konoha"],rank:"Chūnin",nature:["Earth","Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Hanzo",gender:"Male",affs:["Ame"],rank:"None",nature:["Fire"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Pakkun",gender:"Male",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["Summon"]},
+            {name:"Omoi",gender:"Male",affs:["Kumo"],rank:"Chūnin",nature:["Lightning"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Gamatatsu",gender:"Male",affs:["Konoha"],rank:"None",nature:["Water"],kg:["None"],jutsu:["None"],attr:["Summon"]},
+            {name:"Chojuro",gender:"Male",affs:["Kiri"],rank:"Jōnin",nature:["Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Gengetsu Hozuki",gender:"Male",affs:["Kiri"],rank:"Kage",nature:["Water","Fire","Lightning","Earth"],kg:["None"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Yugito Nii",gender:"Female",affs:["Kumo"],rank:"Jōnin",nature:["Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["Jinchūriki"]},
+            {name:"Mu",gender:"Male",affs:["Iwa"],rank:"Kage",nature:["Earth","Water","Fire","Wind","Lightning"],kg:["Nature Transformation"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Karui",gender:"Female",affs:["Kumo"],rank:"Chūnin",nature:["Lightning"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Baki",gender:"Male",affs:["Suna"],rank:"Jōnin",nature:["Wind"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Homura Mitokado",gender:"Male",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Ebisu",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Fire"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Shima",gender:"Female",affs:["Konoha"],rank:"None",nature:["Fire","Wind"],kg:["None"],jutsu:["Ninjutsu","Genjutsu"],attr:["Sage","Summon"]},
+            {name:"Hiashi Hyuga",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["Dôjutsu"],jutsu:["Taijutsu"],attr:["None"]},
+            {name:"Katsuyu",gender:"Other",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["Summon"]},
+            {name:"Gamakichi",gender:"Male",affs:["Konoha"],rank:"None",nature:["Water","Fire"],kg:["None"],jutsu:["Ninjutsu"],attr:["Sage","Summon"]},
+            {name:"Gyuki",gender:"Other",affs:["Kumo"],rank:"None",nature:["None"],kg:["None"],jutsu:["Ninjutsu"],attr:["Tailed Beast"]},
+            {name:"Choza Akimichi",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Fukasaku",gender:"Male",affs:["Konoha"],rank:"None",nature:["Wind","Water"],kg:["None"],jutsu:["Ninjutsu","Genjutsu"],attr:["Sage","Summon"]},
+            {name:"Ao",gender:"Male",affs:["Kiri"],rank:"Jōnin",nature:["Water"],kg:["Dôjutsu"],jutsu:["Ninjutsu","Genjutsu","Taijutsu"],attr:["None"]},
+            {name:"Koharu Utatane",gender:"Female",affs:["Konoha"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Mifune",gender:"Male",affs:["Land of Iron"],rank:"None",nature:["None"],kg:["None"],jutsu:["None"],attr:["None"]},
+            {name:"Kurenai Yuhi",gender:"Female",affs:["Konoha"],rank:"Jōnin",nature:["None"],kg:["None"],jutsu:["Genjutsu"],attr:["None"]},
+            {name:"Inoichi Yamanaka",gender:"Male",affs:["Konoha"],rank:"Jōnin",nature:["Water"],kg:["None"],jutsu:["Ninjutsu"],attr:["None"]},
+            {name:"Jugo",gender:"Male",affs:["Oto","Akatsuki"],rank:"None",nature:["Wind","Earth","Water"],kg:["Body Enhancement"],jutsu:["None"],attr:["Sage"]},
+            {name:"A (Fourth Raikage)",gender:"Male",affs:["Kumo"],rank:"Kage",nature:["Lightning","Earth","Water"],kg:["None"],jutsu:["Ninjutsu","Taijutsu"],attr:["None"]},
+            {name:"Onoki",gender:"Male",affs:["Iwa"],rank:"Kage",nature:["Earth","Fire","Wind","Lightning"],kg:["Nature Transformation"],jutsu:["Ninjutsu"],attr:["None"]}
         ];
 
-        ninjas.sort((a, b) => a.championName.localeCompare(b.championName));
+        const translations = {
+            "Male": "Masculin", "Female": "Féminin", "Other": "Autre",
+            "Konoha": "Konoha", "Akatsuki": "Akatsuki", "Kiri": "Kiri", "Suna": "Suna", "Iwa": "Iwa", "Kumo": "Kumo", 
+            "Oto": "Oto", "Ame": "Ame", "Yu": "Yu", "Uzushio": "Uzushio", "Taki": "Taki", "Land of Iron": "Pays du Fer", "None": "Aucun",
+            "Fire": "Feu", "Wind": "Vent", "Lightning": "Foudre", "Earth": "Terre", "Water": "Eau",
+            "Ninjutsu": "Ninjutsu", "Genjutsu": "Genjutsu", "Taijutsu": "Taijutsu",
+            "Jinchūriki": "Jinchūriki", "Sage": "Ermite", "Missing-nin": "Déserteur", "Medical-nin": "Médecin",
+            "Mercenary Ninja": "Mercenaire", "Tailed Beast": "Démon", "Princess": "Princesse",
+            "Summon": "Invocation", "Artificial Human": "Humain Artificiel",
+            "Dôjutsu": "Dôjutsu", "Nature Transformation": "Transformation de Nature", "Body Enhancement": "Amélioration Corporelle",
+            "Genin": "Genin", "Chūnin": "Chūnin", "Jōnin": "Jōnin", "Anbu": "Anbu", "Kage": "Kage"
+        };
+        
+        function t(key) { return translations[key] || key; }
 
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
-            document.body.classList.toggle('menu-open');
-        }
+        const allowedNatures = ["Fire", "Water", "Wind", "Earth", "Lightning", "None"];
 
-        const allNatures = new Set();
-        const allAffiliations = new Set();
-        const allRanks = new Set();
-        const allGenders = new Set();
-        const allStatuses = new Set();
-        const allClassifs = new Set();
-
-        ninjas.forEach(n => {
-            n.natureTypes.forEach(t => { if(t !== 'Aucun') allNatures.add(t); });
-            n.affiliations.forEach(a => { if(a !== 'Aucun') allAffiliations.add(a); });
-            if(n.ninjaRank !== 'Aucun') allRanks.add(n.ninjaRank);
-            if(n.gender !== 'Aucun') allGenders.add(n.gender);
-            if(n.status !== 'Aucun') allStatuses.add(n.status);
-            n.classifications.forEach(c => { if(c !== 'Aucun') allClassifs.add(c); });
+        const ninjas = rawNinjas.map(n => {
+            n.nature = n.nature.filter(x => allowedNatures.includes(x));
+            if(n.nature.length === 0) n.nature = ["None"];
+            return n;
         });
 
-        function populateFilters() {
-            const addCheckboxes = (containerId, sourceSet, filterName) => {
-                const container = document.getElementById(containerId);
-                Array.from(sourceSet).sort().forEach(item => {
-                    container.innerHTML += `<label><input type="checkbox" name="${filterName}" value="${item}" onchange="filterNinjas()"> ${item}</label>`;
-                });
-            };
+        ninjas.sort((a, b) => a.name.localeCompare(b.name));
 
-            addCheckboxes('nature-filters', allNatures, 'nature');
-            addCheckboxes('affiliation-filters', allAffiliations, 'affiliation');
-            addCheckboxes('rank-filters', allRanks, 'rank');
-            addCheckboxes('gender-filters', allGenders, 'gender');
-            addCheckboxes('status-filters', allStatuses, 'status');
-            addCheckboxes('classif-filters', allClassifs, 'classif');
+        const filtersConfig = [
+            { id: 'gender', title: 'Genre', key: 'gender' },
+            { id: 'affiliation', title: 'Affiliation', key: 'affs' },
+            { id: 'jutsu', title: 'Type de Jutsu', key: 'jutsu' },
+            { id: 'nature', title: 'Nature de Chakra', key: 'nature' },
+            { id: 'kekkei', title: 'Kekkei Genkai', key: 'kg' },
+            { id: 'classif', title: 'Attributs', key: 'attr' }
+        ];
+
+        let activeFilters = {};
+
+        function initFilters() {
+            const container = document.getElementById('filters-container');
+            container.innerHTML = '';
+
+            filtersConfig.forEach(config => {
+                activeFilters[config.id] = {}; 
+                const uniqueValues = new Set();
+                ninjas.forEach(n => {
+                    const val = n[config.key];
+                    if (Array.isArray(val)) {
+                        val.forEach(v => { if(v !== 'None' && v !== 'Aucun') uniqueValues.add(v); });
+                    } else {
+                        if(val !== 'None' && val !== 'Aucun') uniqueValues.add(val);
+                    }
+                });
+                const sortedValues = Array.from(uniqueValues).sort();
+
+                const section = document.createElement('div');
+                section.className = 'filter-section';
+                
+                let html = `
+                    <div class="filter-header">
+                        <h3>${config.title}</h3>
+                        <button class="mini-reset" onclick="resetGroup('${config.id}')">↺</button>
+                    </div>
+                    <div class="tri-state-grid">`;
+
+                sortedValues.forEach(val => {
+                    const displayVal = t(val);
+                    const safeVal = val.replace(/[^a-zA-Z0-9]/g, '_'); 
+                    
+                    html += `
+                        <div class="tri-state-item">
+                            <span>${displayVal}</span>
+                            <div class="state-controls">
+                                <button class="state-btn" id="btn-${config.id}-${safeVal}-1" onclick="setFilterState('${config.id}', '${val}', 1)">V</button>
+                                <button class="state-btn" id="btn-${config.id}-${safeVal}-3" onclick="setFilterState('${config.id}', '${val}', 3)">J</button>
+                                <button class="state-btn" id="btn-${config.id}-${safeVal}-2" onclick="setFilterState('${config.id}', '${val}', 2)">R</button>
+                            </div>
+                        </div>`;
+                });
+
+                html += `</div>`;
+                section.innerHTML = html;
+                container.appendChild(section);
+            });
+        }
+
+        function setFilterState(catId, val, state) {
+            const current = activeFilters[catId][val] || 0;
+            const newState = (current === state) ? 0 : state;
+            
+            activeFilters[catId][val] = newState;
+            updateButtonStyles(catId, val, newState);
+            filterNinjas();
+        }
+
+        function updateButtonStyles(catId, val, state) {
+            const safeVal = val.replace(/[^a-zA-Z0-9]/g, '_');
+            document.getElementById(`btn-${catId}-${safeVal}-1`).className = 'state-btn';
+            document.getElementById(`btn-${catId}-${safeVal}-2`).className = 'state-btn';
+            document.getElementById(`btn-${catId}-${safeVal}-3`).className = 'state-btn';
+
+            if (state === 1) document.getElementById(`btn-${catId}-${safeVal}-1`).classList.add('active-green');
+            if (state === 2) document.getElementById(`btn-${catId}-${safeVal}-2`).classList.add('active-red');
+            if (state === 3) document.getElementById(`btn-${catId}-${safeVal}-3`).classList.add('active-yellow');
         }
 
         function filterNinjas() {
-            const getChecked = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
-            
-            const selectedNatures = getChecked('nature');
-            const selectedAffiliations = getChecked('affiliation');
-            const selectedRanks = getChecked('rank');
-            const selectedGenders = getChecked('gender');
-            const selectedStatuses = getChecked('status');
-            const selectedClassifs = getChecked('classif');
-
             const filtered = ninjas.filter(ninja => {
-                const hasNatures = selectedNatures.length === 0 || selectedNatures.every(val => ninja.natureTypes.includes(val));
-                const hasAffiliation = selectedAffiliations.length === 0 || selectedAffiliations.every(val => ninja.affiliations.includes(val));
-                const hasRank = selectedRanks.length === 0 || selectedRanks.every(val => ninja.ninjaRank === val);
-                const hasGender = selectedGenders.length === 0 || selectedGenders.every(val => ninja.gender === val);
-                const hasStatus = selectedStatuses.length === 0 || selectedStatuses.every(val => ninja.status === val);
-                const hasClassif = selectedClassifs.length === 0 || selectedClassifs.every(val => ninja.classifications.includes(val));
+                for (const config of filtersConfig) {
+                    const catId = config.id;
+                    const filters = activeFilters[catId];
+                    const ninjaVal = ninja[config.key];
 
-                return hasNatures && hasAffiliation && hasRank && hasGender && hasStatus && hasClassif;
+                    let greens = [];
+                    let yellows = [];
+                    let reds = [];
+
+                    for (const [val, state] of Object.entries(filters)) {
+                        if (state === 1) greens.push(val);
+                        if (state === 3) yellows.push(val);
+                        if (state === 2) reds.push(val);
+                    }
+
+                    if (greens.length > 0) {
+                        if (Array.isArray(ninjaVal)) {
+                            const hasAllGreens = greens.every(g => ninjaVal.includes(g));
+                            if (!hasAllGreens) return false;
+                            
+                            const realValues = ninjaVal.filter(v => v !== 'None');
+                            if (realValues.length !== greens.length) return false;
+                        } else {
+                            if (!greens.includes(ninjaVal)) return false;
+                        }
+                    } 
+
+                    if (greens.length === 0 && yellows.length > 0) {
+                        if (Array.isArray(ninjaVal)) {
+                            const hasAtLeastOneYellow = yellows.some(y => ninjaVal.includes(y));
+                            if (!hasAtLeastOneYellow) return false;
+                        } else {
+                             if (!yellows.includes(ninjaVal)) return false;
+                        }
+                    }
+
+                    if (reds.length > 0) {
+                        if (Array.isArray(ninjaVal)) {
+                            const hasRed = reds.some(r => ninjaVal.includes(r));
+                            if (hasRed) return false;
+                        } else {
+                            if (reds.includes(ninjaVal)) return false;
+                        }
+                    }
+                }
+                return true;
             });
 
             renderGrid(filtered);
         }
 
-        function resetGroup(groupName) {
-            const inputs = document.querySelectorAll(`input[name="${groupName}"]`);
-            inputs.forEach(i => i.checked = false);
+        function resetGroup(catId) {
+            activeFilters[catId] = {};
+            const btns = document.querySelectorAll(`[id^="btn-${catId}-"]`);
+            btns.forEach(b => b.className = 'state-btn');
             filterNinjas();
         }
 
-        function resetFilters() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        function resetAllFilters() {
+            filtersConfig.forEach(c => activeFilters[c.id] = {});
+            const btns = document.querySelectorAll('.state-btn');
+            btns.forEach(b => b.className = 'state-btn');
             filterNinjas();
         }
 
@@ -550,38 +517,36 @@
             grid.innerHTML = '';
 
             if(data.length === 0) {
-                grid.innerHTML = '<p style="text-align:center; color:#666; width:100%; grid-column: 1/-1;">Aucun ninja trouvé...</p>';
+                grid.innerHTML = '<p style="text-align:center; color:#666; width:100%; grid-column: 1/-1;">Aucun ninja ne correspond.</p>';
                 return;
             }
 
             data.forEach(ninja => {
-                let firstName = ninja.championName.split(' ')[0].toLowerCase();
-                let imagePath = `${firstName}.png`;
+                let firstName = ninja.name.split(' ')[0].toLowerCase();
+                let imagePath = `images/${firstName}.png`;
 
-                const natureBadges = ninja.natureTypes.map(n => {
-                    if (n === 'Aucun') return '';
-                    let colorClass = `tag-${n.toLowerCase()}`;
-                    return `<span class="badge ${colorClass}">${n}</span>`;
-                }).join('');
-
-                const classifBadges = ninja.classifications.map(c => {
-                    if (c === 'Aucun') return '';
-                    return `<span class="badge spec-badge">${c}</span>`;
-                }).join('');
+                const makeBadges = (arr, cls) => {
+                    if (!arr || (arr.length===1 && arr[0]==='None')) return '';
+                    return arr.map(v => `<span class="badge ${cls}">${t(v)}</span>`).join('');
+                };
 
                 const html = `
                     <div class="card">
                         <div class="img-container ${imagePath ? '' : 'img-error'}">
-                            <img src="${imagePath}" class="card-img" onerror="this.parentElement.classList.add('img-error')" alt="${ninja.championName}">
-                            <span class="img-fallback-text">${ninja.championName}</span>
+                            <img src="${imagePath}" class="card-img" onerror="this.parentElement.classList.add('img-error')" alt="${ninja.name}">
+                            <span class="img-fallback-text">${ninja.name}</span>
                         </div>
                         <div class="card-content">
-                            <h2>${ninja.championName}</h2>
-                            <p><strong>Rang:</strong> ${ninja.ninjaRank}</p>
-                            <p><strong>Village:</strong> ${ninja.affiliations.join(', ')}</p>
-                            <div class="badges-container">${natureBadges}</div>
-                            <div class="badges-container">${classifBadges}</div>
-                            <p style="margin-top:15px; font-size:0.85em; color:#888;"><em>${ninja.status}</em></p>
+                            <h2>${ninja.name}</h2>
+                            <p><strong>Genre:</strong> ${t(ninja.gender)}</p>
+                            <p><strong>Affiliation:</strong> ${ninja.affs.map(v=>t(v)).join(', ')}</p>
+                            
+                            <div class="badges">
+                                ${makeBadges(ninja.nature, 'tag-nature')}
+                                ${makeBadges(ninja.jutsu, 'tag-jutsu')}
+                                ${makeBadges(ninja.kg, 'tag-kg')}
+                                ${makeBadges(ninja.attr, 'tag-attr')}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -589,8 +554,13 @@
             });
         }
 
-        populateFilters();
-        renderGrid(ninjas);
+        initFilters();
+        filterNinjas();
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.body.classList.toggle('menu-open');
+        }
 
     </script>
 </body>
